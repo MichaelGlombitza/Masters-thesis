@@ -1,0 +1,67 @@
+// Path to segmented images
+dir = "Z:/Michael_Glombitza/Masterarbeit/Masterarbeit/figures/figure2/apoptosis/segmentation/dead_cells/ilastik/";
+
+// Number of samples
+sampleNumbers = newArray("01", "02", "04", "06", "07", "08", "09", "11");
+
+// Path to Excel sheet
+excelFile = "C:\\Users\\micha\\OneDrive\\Desktop\\segmentation_pescoids.xlsx";
+sheetName = "dead_cells";
+
+// Iterate over all samples
+for (i = 0; i < sampleNumbers.length; i++) {
+    sampleNum = sampleNumbers[i];
+    filename = "Sample" + sampleNum + "-red_Simple Segmentation.tiff";
+    filepath = dir + filename;
+    
+    // Check if the file exists
+    if (File.exists(filepath)) {
+        // Open the image
+        open(filepath);
+        imageTitle = "Sample" + sampleNum + "-red_Simple Segmentation.tiff";
+        selectImage(imageTitle);
+        
+        // Set scale
+        run("Set Scale...", "distance=0.4023 known=1 unit=micron");
+        
+        // Thresholding
+        setAutoThreshold("Default no-reset");
+        //run("Threshold...");
+        setThreshold(0, 1, "raw");
+        //setThreshold(0, 1);
+        run("Convert to Mask", "background=Light black");
+        
+        // Set measurement parameters
+        run("Set Measurements...", "area redirect=None decimal=3");
+        
+        // Iterate over all slices (time points) in the image
+        for (j = 1; j <= nSlices; j++) {
+            setSlice(j); // Switch to the current slice
+            
+            // Create a selection based on white pixels
+            run("Create Selection");
+            
+            // Check if a selection exists
+            if (selectionType() != -1) {
+                // Perform measurement
+                run("Measure");
+            } else {
+                print("No selection on Slice " + j + " in Sample " + sampleNum + ", measurement skipped.");
+                // Add result with value 0
+                setResult("Area", nResults, 0);
+                updateResults();
+            }
+        }
+        
+        // Save results in Excel
+        run("Append table as columns", "resultstable=Results file=[" + excelFile + "] sheetname=" + sheetName + " includetableheadings=true");
+        
+        // Clear results
+        run("Clear Results");
+        
+        // Close image
+        close();
+    } else {
+        print("File not found: " + filepath);
+    }
+}
